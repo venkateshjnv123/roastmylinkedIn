@@ -45,8 +45,18 @@ export const RoastRequestSchema = z.object({
   profileName: z.string().max(100).optional(),
 });
 
+export const RoastSourceSchema = z.enum(["screenshot", "pdf"]);
+export type RoastSource = z.infer<typeof RoastSourceSchema>;
+
+export const PdfRoastRequestSchema = z.object({
+  pdfBase64: z.string().min(1).max(10_000_000),
+  level: RoastLevelSchema,
+  profileName: z.string().max(100).optional(),
+});
+
 export type RoastData = GeminiResponse & {
   roastId: string;
   level: RoastLevel;
   createdAt: number;
+  source?: RoastSource;
 };

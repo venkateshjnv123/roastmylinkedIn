@@ -27,7 +27,7 @@ export default function HeroCard({ profileName, roastScore, category, level }: P
 
       {/* Headline */}
       <h1 className="mt-5 text-3xl sm:text-5xl font-black text-white leading-tight pr-20 sm:pr-32">
-        {profileName}, you&apos;re{" "}
+        {profileName ? `${profileName}, ` : ""}you&apos;re{" "}
         <span className="text-brand">cooked.</span>
       </h1>
 

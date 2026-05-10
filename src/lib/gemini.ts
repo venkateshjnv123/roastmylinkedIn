@@ -1,9 +1,16 @@
 import Groq from "groq-sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GeminiResponseSchema, type GeminiResponse, type RoastLevel } from "./schemas";
-import { SYSTEM_PROMPTS } from "./prompts";
+import { SYSTEM_PROMPTS, PDF_SYSTEM_PROMPTS } from "./prompts";
 
 const provider = process.env.AI_PROVIDER === "gemini" ? "gemini" : "groq";
+
+if (!process.env.GROQ_API_KEY) {
+  throw new Error("Missing required env var: GROQ_API_KEY");
+}
+if (provider === "gemini" && !process.env.GEMINI_API_KEY) {
+  throw new Error("Missing required env var: GEMINI_API_KEY (AI_PROVIDER=gemini)");
+}
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const genAI = provider === "gemini" ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY!) : null;
@@ -117,4 +124,54 @@ export async function roastProfile(
   }
 
   throw new Error(`${provider} call failed.`);
+}
+
+export async function roastProfileFromText(
+  profileText: string,
+  level: RoastLevel,
+  profileName?: string
+): Promise<GeminiResponse> {
+  const safeName = profileName
+    ? profileName.replace(/[\r\n\t"\\]/g, " ").replace(/[^\x20-\x7E]/g, "").trim()
+    : undefined;
+
+  const basePrompt = safeName
+    ? `The person's name is "${safeName}". Address them by name throughout the roast.\n\n${PDF_SYSTEM_PROMPTS[level]}`
+    : PDF_SYSTEM_PROMPTS[level];
+
+  const fullPrompt = `${basePrompt}\n\n═══════════════════════════════════════\nLINKEDIN PROFILE TEXT (extracted from PDF):\n═══════════════════════════════════════\n${profileText.slice(0, 12_000)}`;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const prompt =
+      attempt === 0
+        ? fullPrompt
+        : fullPrompt + "\n\nCRITICAL: Previous response failed validation. Return ONLY raw JSON.";
+
+    const result = await groq.chat.completions.create({
+      model: "meta-llama/llama-4-scout-17b-16e-instruct",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      temperature: 0.9,
+      max_tokens: 1500,
+    });
+
+    const text = result.choices[0]?.message?.content?.trim() ?? "";
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      if (attempt === 1) throw new Error("Groq returned invalid JSON after retry.");
+      continue;
+    }
+
+    const asObj = parsed as Record<string, unknown>;
+    if (asObj.error === "not_a_linkedin_profile") throw new NotLinkedInError();
+
+    const validated = GeminiResponseSchema.safeParse(parsed);
+    if (validated.success) return validated.data;
+    if (attempt === 1) throw new Error(`PDF roast validation failed: ${validated.error.message}`);
+  }
+
+  throw new Error("Groq PDF roast failed.");
 }

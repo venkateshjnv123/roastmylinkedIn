@@ -1,13 +1,14 @@
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { Ratelimit } from "@upstash/ratelimit";
-import { RoastRequestSchema } from "@/lib/schemas";
-import { roastProfile, NotLinkedInError } from "@/lib/gemini";
+import pdfParse from "pdf-parse";
+import { PdfRoastRequestSchema } from "@/lib/schemas";
+import { roastProfileFromText, NotLinkedInError } from "@/lib/gemini";
 import { saveRoast, normalizeName } from "@/lib/roastStore";
 import redis from "@/lib/redis";
 
-const ratelimit = redis
-  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, "1 d") })
+const pdfRatelimit = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(2, "1 d") })
   : null;
 
 export async function POST(req: NextRequest) {
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const parsed = RoastRequestSchema.safeParse(body);
+  const parsed = PdfRoastRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid request.", details: parsed.error.flatten() },
@@ -26,11 +27,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { image, mimeType, level, profileName } = parsed.data;
+  const { pdfBase64, level, profileName } = parsed.data;
 
   let rateLimitRemaining: number | null = null;
 
-  if (ratelimit) {
+  if (pdfRatelimit) {
     const headersList = await headers();
     const ip =
       headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ??
@@ -38,32 +39,48 @@ export async function POST(req: NextRequest) {
       "anonymous";
 
     const norm = profileName ? normalizeName(profileName) : null;
-    const identifier = norm ? `${norm}|${ip}` : ip;
-    const { success, reset, remaining } = await ratelimit.limit(identifier);
+    const identifier = norm ? `pdf:${norm}|${ip}` : `pdf:${ip}`;
+    const { success, reset, remaining } = await pdfRatelimit.limit(identifier);
     if (!success) {
       const retryInHours = Math.ceil((reset - Date.now()) / 1000 / 3600);
       return NextResponse.json(
-        {
-          error: `You've used all 5 roasts for today. Try again in ${retryInHours}h.`,
-          retryInHours,
-        },
+        { error: `PDF roast limit reached (2/day). Try again in ${retryInHours}h.`, retryInHours },
         { status: 429 }
       );
     }
     rateLimitRemaining = remaining;
   }
 
-  let roastData: Awaited<ReturnType<typeof roastProfile>>;
+  let profileText: string;
   try {
-    roastData = await roastProfile(image, mimeType, level, profileName);
-  } catch (err) {
-    if (err instanceof NotLinkedInError) {
+    const buffer = Buffer.from(pdfBase64, "base64");
+    const pdfData = await pdfParse(buffer);
+    profileText = pdfData.text?.trim() ?? "";
+
+    if (profileText.length < 100) {
       return NextResponse.json(
-        { error: "That doesn't look like a LinkedIn profile screenshot." },
+        { error: "Could not extract enough text from the PDF. Make sure it's a LinkedIn profile export." },
         { status: 422 }
       );
     }
-    console.error("[roast] Groq error:", err);
+  } catch {
+    return NextResponse.json(
+      { error: "Failed to read the PDF. Please try a different file." },
+      { status: 422 }
+    );
+  }
+
+  let roastData: Awaited<ReturnType<typeof roastProfileFromText>>;
+  try {
+    roastData = await roastProfileFromText(profileText, level, profileName);
+  } catch (err) {
+    if (err instanceof NotLinkedInError) {
+      return NextResponse.json(
+        { error: "This doesn't look like a LinkedIn profile PDF." },
+        { status: 422 }
+      );
+    }
+    console.error("[roast/pdf] error:", err);
     return NextResponse.json(
       { error: "Roast generation failed. Please try again." },
       { status: 500 }
@@ -71,12 +88,12 @@ export async function POST(req: NextRequest) {
   }
 
   const roastId = crypto.randomUUID();
-  const fullData = { ...roastData, roastId, level, createdAt: Date.now() };
+  const fullData = { ...roastData, roastId, level, source: "pdf" as const, createdAt: Date.now() };
 
   try {
     await saveRoast(fullData);
   } catch (err) {
-    console.error("[roast] Store error:", err);
+    console.error("[roast/pdf] store error:", err);
   }
 
   const responseHeaders: Record<string, string> = {};

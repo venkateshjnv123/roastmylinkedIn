@@ -6,7 +6,7 @@ import RoastPanel from "@/components/RoastPanel";
 import CringePanel from "@/components/CringePanel";
 import ShareBar from "@/components/ShareBar";
 import ReportButton from "@/components/ReportButton";
-import TryHarsherMode from "@/components/TryHarsherMode";
+// import TryHarsherMode from "@/components/TryHarsherMode"; // disabled — needs sessionStorage re-upload fix
 import { getRoast } from "@/lib/roastStore";
 
 type Props = { params: Promise<{ id: string }> };
@@ -57,7 +57,11 @@ export default async function ResultPage({ params }: Props) {
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
-            <RoastPanel roastPoints={roast.roastPoints} />
+            <RoastPanel
+              roastPoints={roast.roastPoints}
+              bannerRoast={roast.bannerRoast}
+              bannerLabel={roast.source === "pdf" ? "Writing Style Roast" : "Photo & Banner Roast"}
+            />
             <CringePanel patterns={roast.cringePatterns} />
           </div>
 
@@ -80,7 +84,7 @@ export default async function ResultPage({ params }: Props) {
           />
 
           <div className="text-center flex flex-col items-center gap-3 pb-4">
-            <TryHarsherMode level={roast.level} />
+            {/* <TryHarsherMode level={roast.level} /> */}
             <a
               href="/"
               className="inline-block bg-brand text-white font-black px-8 py-3.5 rounded-2xl hover:bg-brand-hover transition-colors"

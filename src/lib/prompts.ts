@@ -6,7 +6,7 @@ import type { RoastLevel } from "./schemas";
 // fields more reliably than positional rules). Added explicit max char hints.
 // ──────────────────────────────────────────────────────────────────────────
 const JSON_SHAPE = `{
-  "profileName": "<first name from profile. If unclear, cropped, or stylized, return empty string. NEVER guess.>",
+  "profileName": "<first name only, read directly from the profile. If the name is fully visible, always return it. Return empty string ONLY if the name is completely obscured or missing.>",
   "roastScore": <integer 0-100, anchored to the rubric below>,
   "category": "<one of: Humble Bragger | Gurupanti Guru | Buzzword Salad | Engagement Baiter | Genuine Professional | Cringe Royalty | Vibe Coder | Framework Fanatic | Intern Energy | AI Evangelist | Sales Bro | Founder Mode | Recruiter Bot | Thought Leader Cosplay>",
   "roastPoints": [
@@ -106,11 +106,22 @@ INTERN / STUDENT (→ Intern Energy):
 - "Humbled and grateful to announce my first job" with 14 hashtags
 - College project in the Experience section listed like a Fortune 500 job
 
+HUMBLE BRAGGER:
+- "Humbled and grateful to share..." followed by four paragraphs about how great they are
+- Every achievement announced like an Oscar speech — thanking the team, the universe, their morning chai
+- "I almost didn't apply" / "I never expected this" before listing a prestigious thing they clearly chased
+- Posts their own LinkedIn follower count as if it is a business metric
+- "Just being transparent about my journey" = detailed announcement of every raise and promotion
+- Calls themselves "passionate" 3 times in the bio — code for "I have no specific skills to list"
+
 SALES / BIZDEV:
 - "Crushing quota" (quota that they set themselves)
 - "Hope this finds you well" cold DM that immediately pitches
 - 800 connections this month — calling it networking
 - "Let's hop on a quick call" for something that should be one Slack message
+- "I help [vague group] achieve [vague outcome] through [vague method]" — the sales bio formula
+- Every post is a story that ends with a pitch. The ratio is 3 lines of story, 1 line of product.
+- "Excited to share that I've joined [company]" posted 4 times in 3 years
 
 FOUNDER:
 - "Building in public" = landing page with 12 users, 11 are friends
@@ -187,7 +198,7 @@ STEP 5 — STYLE RULES
 - Use simple English. Short sentences.
 - No poetry. No big words. No corporate jargon (unless mocking it).
 - Each roast point: max 200 characters, 1-2 punchy sentences.
-- Every roast must point to something VISIBLE in the screenshot. No generic "your profile is cringe."
+- Every roast must reference something SPECIFIC from the profile — a real word, phrase, job title, company, or pattern you actually see. No generic "your profile is cringe."
 - Mock LinkedIn behavior, not the human.
 - Write like a viral tweet someone screenshots and sends to a group chat.
 - ZERO overlap between roastPoints and cringePatterns. roastPoints are punchlines. cringePatterns are named behavior categories with descriptions.
@@ -229,6 +240,52 @@ ${NEVER_ROAST}`;
 // ──────────────────────────────────────────────────────────────────────────
 // PER-LEVEL SYSTEM PROMPTS
 // ──────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
+// PDF VARIANTS — text-based profile, no photo/banner available
+// ──────────────────────────────────────────────────────────────────────────
+const PDF_BANNER_INSTRUCTION = `
+═══════════════════════════════════════════════════════════
+STEP 6 — sectionRoast FIELD (replaces bannerRoast for PDF profiles)
+═══════════════════════════════════════════════════════════
+Since this is a text-based profile (no photo/banner available), use the
+"bannerRoast" field to roast ONE of the following — pick whichever has
+the most material:
+
+OPTION A — Writing style in the About section:
+- Third-person bio talking about themselves ("John is a passionate leader who...")
+- Wall of text with no paragraph breaks
+- Every sentence starts with "I"
+- Motivational opener: "I believe in the power of..." or "My mission is to..."
+- Keyword stuffing: "synergy, innovation, scalability, impact" in one paragraph
+
+OPTION B — Company name / employer flex choices:
+- Calling a 3-person startup "a leading AI company"
+- "Consulted for Fortune 500 companies" (one coffee chat with one person there)
+- Title inflation: "Head of Growth" at a company with 4 employees
+- 6 companies in 3 years listed with zero explanation
+
+OPTION C — How they describe their own roles:
+- "Spearheaded", "Orchestrated", "Catalyzed" for sending emails
+- Vague impact: "Improved team performance by optimizing cross-functional workflows"
+- Taking credit for company-wide metrics: "Contributed to 200% revenue growth"
+- Listing responsibilities as achievements
+
+Pick whichever is funniest. Max 200 chars. Same tone as the roastPoints.`;
+
+const PDF_BASE_RULES = BASE_RULES
+  .replace(
+    "Analyze the LinkedIn profile screenshot and return ONLY valid JSON in this exact shape:",
+    "Analyze this LinkedIn profile text and return ONLY valid JSON in this exact shape:"
+  )
+  .replace(
+    /═══════════════════════════════════════════════════════════\nSTEP 6 — bannerRoast FIELD[\s\S]*?Mock the CHOICE\./,
+    PDF_BANNER_INSTRUCTION
+  )
+  .replace(
+    'If the image is NOT a LinkedIn profile screenshot, return EXACTLY:\n{"error":"not_a_linkedin_profile"}',
+    'If the text does NOT appear to be a LinkedIn profile (no name, no headline, no experience), return EXACTLY:\n{"error":"not_a_linkedin_profile"}'
+  );
+
 export const SYSTEM_PROMPTS: Record<RoastLevel, string> = {
   mild: `You are a friendly, witty LinkedIn profile roaster.
 
@@ -278,4 +335,11 @@ Sample energy (study this, do not copy verbatim):
 "Twelve technologies in the headline. That's a lot. Pick four. The other eight are scared."
 
 ${BASE_RULES}`,
+};
+
+export const PDF_SYSTEM_PROMPTS: Record<RoastLevel, string> = {
+  mild:   SYSTEM_PROMPTS.mild.replace(BASE_RULES, PDF_BASE_RULES),
+  medium: SYSTEM_PROMPTS.medium.replace(BASE_RULES, PDF_BASE_RULES),
+  heavy:  SYSTEM_PROMPTS.heavy.replace(BASE_RULES, PDF_BASE_RULES),
+  dhoni:  SYSTEM_PROMPTS.dhoni.replace(BASE_RULES, PDF_BASE_RULES),
 };

@@ -8,6 +8,12 @@ const g = global as typeof global & { __devStore?: Map<string, RoastData> };
 if (!g.__devStore) g.__devStore = new Map();
 const devStore = g.__devStore;
 
+export function normalizeName(name: string): string {
+  const clean = name.toLowerCase().trim()
+    .replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "_").slice(0, 80);
+  return clean || "unknown";
+}
+
 export type LeaderboardEntry = {
   roastId: string;
   profileName: string;
@@ -16,13 +22,17 @@ export type LeaderboardEntry = {
   level: string;
   verdict: string;
   createdAt: number;
+  source?: string;
 };
 
 export async function saveRoast(data: RoastData): Promise<void> {
   if (redis) {
+    const norm = normalizeName(data.profileName);
     await Promise.all([
-      redis.setex(`roast:${data.roastId}`, ROAST_TTL, JSON.stringify(data)),
+      redis.setex(`roast:${norm}:${data.roastId}`, ROAST_TTL, JSON.stringify(data)),
+      redis.setex(`roast_id:${data.roastId}`, ROAST_TTL, norm),
       redis.zadd("leaderboard", { score: data.roastScore, member: data.roastId }),
+      redis.sadd(`name_roasts:${norm}`, data.roastId),
     ]);
     await redis.zremrangebyrank("leaderboard", 0, -101);
   } else {
@@ -32,7 +42,13 @@ export async function saveRoast(data: RoastData): Promise<void> {
 
 export async function getRoast(id: string): Promise<RoastData | null> {
   if (redis) {
-    const raw = await redis.get(`roast:${id}`);
+    // Try old key format first for backwards compat
+    const oldRaw = await redis.get(`roast:${id}`);
+    if (oldRaw) return (typeof oldRaw === "string" ? JSON.parse(oldRaw) : oldRaw) as RoastData;
+    // New format: look up norm via reverse index
+    const norm = await redis.get(`roast_id:${id}`);
+    if (!norm) return null;
+    const raw = await redis.get(`roast:${norm}:${id}`);
     if (!raw) return null;
     return (typeof raw === "string" ? JSON.parse(raw) : raw) as RoastData;
   }
@@ -46,8 +62,8 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     const roasts = await Promise.all(ids.map((id) => getRoast(id)));
     return roasts
       .filter((r): r is RoastData => r !== null)
-      .map(({ roastId, profileName, roastScore, category, level, verdict, createdAt }) => ({
-        roastId, profileName, roastScore, category, level, verdict, createdAt,
+      .map(({ roastId, profileName, roastScore, category, level, verdict, createdAt, source }) => ({
+        roastId, profileName, roastScore, category, level, verdict, createdAt, source,
       }));
   }
   return [...devStore.values()]

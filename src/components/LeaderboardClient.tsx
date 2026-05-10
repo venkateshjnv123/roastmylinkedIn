@@ -89,6 +89,11 @@ export default function LeaderboardClient({ initialEntries }: Props) {
               <span className="text-xs text-stone-400">
                 {LEVEL_LABELS[entry.level] ?? entry.level}
               </span>
+              {entry.source && (
+                <span className="text-xs text-stone-400">
+                  {entry.source === "pdf" ? "📄" : "📸"}
+                </span>
+              )}
             </div>
             <p className="text-sm text-stone-600 line-clamp-2 italic">
               &ldquo;

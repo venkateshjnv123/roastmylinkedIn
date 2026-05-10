@@ -1,8 +1,10 @@
 type Props = {
   roastPoints: string[];
+  bannerRoast?: string;
+  bannerLabel?: string;
 };
 
-export default function RoastPanel({ roastPoints }: Props) {
+export default function RoastPanel({ roastPoints, bannerRoast, bannerLabel }: Props) {
   return (
     <div className="relative rounded-2xl bg-white border border-stone-200 p-6 flex flex-col gap-5">
       {/* ROASTED stamp */}
@@ -25,6 +27,15 @@ export default function RoastPanel({ roastPoints }: Props) {
           </div>
         ))}
       </div>
+
+      {bannerRoast && (
+        <div className="border-t border-stone-100 pt-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">
+            {bannerLabel ?? "Photo & Banner Roast"}
+          </p>
+          <p className="text-stone-600 text-sm leading-relaxed italic">{bannerRoast}</p>
+        </div>
+      )}
     </div>
   );
 }
