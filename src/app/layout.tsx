@@ -8,9 +8,9 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-const baseUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+const baseUrl =
+  process.env.NEXT_PUBLIC_BASE_URL ??
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -43,6 +43,7 @@ export const metadata: Metadata = {
     url: baseUrl,
     type: "website",
     locale: "en_US",
+    images: [{ url: "/api/og", width: 1200, height: 630, alt: "Roast My LinkedIn" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -50,6 +51,7 @@ export const metadata: Metadata = {
     description:
       "Upload your LinkedIn profile screenshot and get brutally roasted by AI. Share the carnage.",
     creator: "@venkyverse",
+    images: ["/api/og"],
   },
   robots: {
     index: true,

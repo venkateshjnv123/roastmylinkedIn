@@ -63,6 +63,23 @@ Both paths log request metadata and raw response. Retries once on invalid JSON o
 
 **Leaderboard** — Redis sorted set (`zadd "leaderboard"` keyed by roast score). Trimmed to top 100 after each save (`zremrangebyrank`). Roasts expire after 7 days. `/leaderboard` page reads top 10. Names masked as "First L." in display layer (`LeaderboardClient.tsx`).
 
+**Redis key schema** — `normalizeName()` in `roastStore.ts` lowercases, strips non-alphanumeric, spaces→underscores, caps at 80 chars, falls back to `"unknown"`.
+
+| Key | Type | TTL | Purpose |
+|---|---|---|---|
+| `roast:{uuid}` | String | 30d | Legacy format — expires naturally |
+| `roast:{norm}:{uuid}` | String | 30d | Roast data (new format) |
+| `roast_id:{uuid}` | String | 30d | Reverse index: uuid → norm (needed by `getRoast` since URL only has uuid) |
+| `name_roasts:{norm}` | Set | none | Forward index: norm → all uuids (needed by delete API) |
+| `leaderboard` | ZSet | none | Score-ranked roastIds |
+| `reports` | Set | none | Reported roastIds |
+
+Lookup pattern: `delete by name → name_roasts:{norm} → IDs` / `fetch by ID → roast_id:{id} → norm → roast:{norm}:{id}`
+
+Rate limit identifiers: name present → `{norm}|{ip}` (image) / `pdf:{norm}|{ip}` (PDF); name absent → bare `{ip}` / `pdf:{ip}`. Upstash internally keys these as `@upstash/ratelimit:{identifier}:*`.
+
+**Admin delete API** — `DELETE /api/admin/delete?name={name}` with `Authorization: Bearer {ADMIN_SECRET}`. Deletes all roast keys, leaderboard entries, reports, and rate limit keys for a name. Requires `ADMIN_SECRET` env var.
+
 **OG images** — `/api/og` route generates dynamic Open Graph cards. Uses Satori via `next/og`. All `<div>` elements must have explicit `display: "flex"` (Satori requirement). No `fontStyle: "italic"` without loading italic font variant.
 
 **Styling** — Tailwind v4 with custom theme tokens in `globals.css`. Brand orange: `bg-brand` = `#F97316`, hover: `#EA6C0A`. Hero dark: `bg-hero` = `#1A1208`. Background cream: `#F5F0E8`.

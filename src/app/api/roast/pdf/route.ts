@@ -1,7 +1,9 @@
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { Ratelimit } from "@upstash/ratelimit";
-import pdfParse from "pdf-parse";
+// Import from lib directly to skip pdf-parse's test file I/O (fails on serverless)
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require("pdf-parse/lib/pdf-parse.js") as (buffer: Buffer) => Promise<{ text: string }>;
 import { PdfRoastRequestSchema } from "@/lib/schemas";
 import { roastProfileFromText, NotLinkedInError } from "@/lib/gemini";
 import { saveRoast, normalizeName } from "@/lib/roastStore";
