@@ -29,11 +29,14 @@ export default function RoastPanel({ roastPoints, bannerRoast, bannerLabel }: Pr
       </div>
 
       {bannerRoast && (
-        <div className="border-t border-stone-100 pt-4">
-          <p className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">
+        <div className="border-t border-stone-100 pt-4 flex flex-col gap-2">
+          <p className="text-xs font-bold uppercase tracking-widest text-stone-400">
             {bannerLabel ?? "Photo & Banner Roast"}
           </p>
-          <p className="text-stone-600 text-sm leading-relaxed italic">{bannerRoast}</p>
+          <div className="bg-stone-50 border border-stone-100 rounded-xl p-3.5 flex gap-3 items-start">
+            <span className="mt-0.5 shrink-0">🔥</span>
+            <p className="text-stone-700 text-sm leading-relaxed">{bannerRoast}</p>
+          </div>
         </div>
       )}
     </div>

@@ -15,7 +15,7 @@ export default function Home() {
             </h1>
             <p className="text-stone-500 text-base sm:text-lg">
               Upload your profile screenshot. Get roasted by AI.{" "}
-              <span className="text-stone-700 font-medium">Share the carnage.</span>
+              <span className="text-stone-700 font-medium whitespace-nowrap">Share the carnage.</span>
             </p>
           </div>
 

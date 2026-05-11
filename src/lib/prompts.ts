@@ -6,7 +6,7 @@ import type { RoastLevel } from "./schemas";
 // fields more reliably than positional rules). Added explicit max char hints.
 // ──────────────────────────────────────────────────────────────────────────
 const JSON_SHAPE = `{
-  "profileName": "<first name only, read directly from the profile. If the name is fully visible, always return it. Return empty string ONLY if the name is completely obscured or missing.>",
+  "profileName": "<full name, read directly from the profile. If the name is fully visible, always return it. Return empty string ONLY if the name is completely obscured or missing.>",
   "roastScore": <integer 0-100, anchored to the rubric below>,
   "category": "<one of: Humble Bragger | Gurupanti Guru | Buzzword Salad | Engagement Baiter | Genuine Professional | Cringe Royalty | Vibe Coder | Framework Fanatic | Intern Energy | AI Evangelist | Sales Bro | Founder Mode | Recruiter Bot | Thought Leader Cosplay>",
   "roastPoints": [

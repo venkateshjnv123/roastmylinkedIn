@@ -185,13 +185,14 @@ export default function UploadForm() {
   return (
     <div className="w-full max-w-xl mx-auto flex flex-col gap-6">
       {/* Mode selector */}
-      <div className="grid grid-cols-2 gap-3">
+      <div role="group" aria-label="Choose upload type" className="grid grid-cols-2 gap-3">
         {([
           { id: "screenshot" as const, emoji: "📸", label: "Screenshot", sub: "PNG or JPG" },
           { id: "pdf" as const, emoji: "📄", label: "LinkedIn PDF", sub: "Save to PDF export" },
         ] as const).map((mode) => (
           <button
             key={mode.id}
+            aria-pressed={uploadMode === mode.id}
             onClick={() => { setUploadMode(mode.id); reset(); }}
             className={[
               "flex flex-col items-center gap-1.5 py-4 px-3 rounded-2xl border-2 transition-all",
@@ -225,8 +226,11 @@ export default function UploadForm() {
         >
           <input
             ref={inputRef}
+            id="file-upload"
+            name="file"
             type="file"
             accept="image/png,image/jpeg"
+            aria-label="Upload LinkedIn screenshot"
             className="sr-only"
             onChange={handleInputChange}
           />
@@ -280,8 +284,11 @@ export default function UploadForm() {
         >
           <input
             ref={pdfInputRef}
+            id="pdf-upload"
+            name="pdf"
             type="file"
             accept="application/pdf"
+            aria-label="Upload LinkedIn PDF"
             className="sr-only"
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -332,10 +339,11 @@ export default function UploadForm() {
         <p className="text-xs font-semibold uppercase tracking-widest text-stone-500 mb-3">
           Choose roast level
         </p>
-        <div className="grid grid-cols-4 gap-2">
+        <div role="group" aria-label="Choose roast level" className="grid grid-cols-4 gap-2">
           {LEVELS.map((l) => (
             <button
               key={l.id}
+              aria-pressed={level === l.id}
               onClick={() => setLevel(l.id)}
               className={[
                 "flex flex-col items-center gap-1 py-3 px-2 rounded-xl border-2 text-sm font-semibold transition-all",

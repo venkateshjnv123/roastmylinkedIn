@@ -70,7 +70,7 @@ export default function ShareBar({ roastId, profileName, roastScore, verdict }: 
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 py-2.5 px-6 rounded-xl border-2 border-stone-200 bg-white text-stone-700 text-sm font-semibold hover:border-[#0A66C2] hover:text-[#0A66C2] transition-all"
         >
-          <span>in</span>
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-[#0A66C2] text-white text-[10px] font-black leading-none shrink-0">in</span>
           <span>Share on LinkedIn</span>
         </a>
       </div>
