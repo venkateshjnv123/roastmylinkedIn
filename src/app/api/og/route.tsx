@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { getRoast } from "@/lib/roastStore";
+import * as Sentry from "@sentry/nextjs";
 
 function HomepageOGImage() {
   return (
@@ -51,17 +52,84 @@ function HomepageOGImage() {
   );
 }
 
+const SAMPLE_ROAST = {
+  profileName: "Rahul Sharma",
+  roastScore: 87,
+  category: "Thought Leader Cosplay",
+  verdict: "Your LinkedIn is a motivational poster that accidentally became a person.",
+  roastPoints: [
+    "Your headline has Founder, Builder, Mentor, Speaker, and AI-First Thinker. LinkedIn itself is asking what your job is.",
+    "You said 'humbled to share' and then wrote four paragraphs about yourself. That's not humility, bhai — that's a press release.",
+    "'Building in public' apparently means daily MRR updates at ₹3,400 MRR. The public has been informed. Usse koi fark nahi pada.",
+  ],
+};
+
 export async function GET(req: NextRequest) {
   try {
     const roastId = req.nextUrl.searchParams.get("roastId");
+    const isSample = req.nextUrl.searchParams.get("sample") === "1";
 
-    if (!roastId) {
+    if (!roastId && !isSample) {
       const response = new ImageResponse(<HomepageOGImage />, { width: 1200, height: 630 });
       response.headers.set("Cache-Control", "public, max-age=86400");
       return response;
     }
 
-    const roast = await getRoast(roastId);
+    if (isSample) {
+      const { profileName, roastScore, category, verdict, roastPoints } = SAMPLE_ROAST;
+      const shortVerdict = verdict.length > 160 ? verdict.slice(0, 157) + "..." : verdict;
+      const response = new ImageResponse(
+        (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              background: "linear-gradient(140deg, #1A1208 0%, #0A0603 100%)",
+              display: "flex",
+              flexDirection: "column",
+              padding: "56px 64px",
+              fontFamily: "sans-serif",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <span style={{ fontSize: 112, fontWeight: 700, color: "#F97316", lineHeight: 1 }}>{roastScore}</span>
+                <span style={{ fontSize: 22, color: "#78716C", marginTop: 4 }}>/100 roasted</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "12px" }}>
+                <span style={{ fontSize: 26, fontWeight: 700, color: "#F5F0E8", letterSpacing: "-0.5px" }}>🔥 Roast My LinkedIn</span>
+                <span style={{ background: "#F97316", color: "white", padding: "6px 20px", borderRadius: 100, fontSize: 18, fontWeight: 700 }}>{category}</span>
+              </div>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", marginTop: 28, fontSize: 40, fontWeight: 700, color: "#F5F0E8", lineHeight: 1.2 }}>
+              <span>{profileName}, you&apos;re&nbsp;</span>
+              <span style={{ color: "#F97316" }}>cooked.</span>
+            </div>
+            <div style={{ display: "flex", marginTop: 24, borderLeft: "4px solid #F97316", paddingLeft: 20, fontSize: 22, color: "#D6D3D1", lineHeight: 1.5 }}>
+              <span>&quot;{shortVerdict}&quot;</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: 28, flex: 1 }}>
+              {roastPoints.map((point, i) => (
+                <div key={i} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 18 }}>🔥</span>
+                  <span style={{ color: "#A8A29E", fontSize: 18, lineHeight: 1.4 }}>
+                    {point.length > 110 ? point.slice(0, 107) + "..." : point}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <span style={{ color: "#44403C", fontSize: 18 }}>venkyverse.space</span>
+            </div>
+          </div>
+        ),
+        { width: 1200, height: 630 }
+      );
+      response.headers.set("Cache-Control", "public, max-age=31536000, immutable");
+      return response;
+    }
+
+    const roast = await getRoast(roastId!);
     if (!roast) {
       return new Response("Roast not found", { status: 404 });
     }
@@ -216,6 +284,7 @@ export async function GET(req: NextRequest) {
     response.headers.set("Cache-Control", "public, max-age=31536000, immutable");
     return response;
   } catch (err) {
+    Sentry.captureException(err);
     console.error("[og] render error:", err);
     return new Response("Failed to generate image.", { status: 500 });
   }

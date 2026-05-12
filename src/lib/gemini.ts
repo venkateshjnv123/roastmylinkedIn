@@ -2,6 +2,7 @@ import Groq from "groq-sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GeminiResponseSchema, type GeminiResponse, type RoastLevel } from "./schemas";
 import { SYSTEM_PROMPTS, PDF_SYSTEM_PROMPTS } from "./prompts";
+import { log } from "./logger";
 
 const provider = process.env.AI_PROVIDER === "gemini" ? "gemini" : "groq";
 
@@ -23,15 +24,13 @@ export class NotLinkedInError extends Error {
 }
 
 async function callGroq(base64Image: string, mimeType: string, prompt: string): Promise<string> {
-  console.log("[groq] request:", JSON.stringify({
+  log.info("groq.request", {
     model: "meta-llama/llama-4-scout-17b-16e-instruct",
-    prompt,
     mimeType,
     imageBytes: base64Image.length,
-    response_format: "json_object",
     temperature: 0.9,
     max_tokens: 1500,
-  }, null, 2));
+  });
 
   const result = await groq.chat.completions.create({
     model: "meta-llama/llama-4-scout-17b-16e-instruct",
@@ -49,12 +48,12 @@ async function callGroq(base64Image: string, mimeType: string, prompt: string): 
     max_tokens: 1500,
   });
   const text = result.choices[0]?.message?.content?.trim() ?? "";
-  console.log("[groq] response:", text);
+  log.info("groq.response", { responseLength: text.length });
   return text;
 }
 
 async function callGemini(base64Image: string, mimeType: string, prompt: string): Promise<string> {
-  console.log("[gemini] request:", JSON.stringify({ model: "gemini-2.5-flash-lite", prompt, mimeType, imageBytes: base64Image.length }, null, 2));
+  log.info("gemini.request", { model: "gemini-2.5-flash-lite", mimeType, imageBytes: base64Image.length });
 
   const model = genAI!.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
   const result = await model.generateContent([
@@ -62,7 +61,7 @@ async function callGemini(base64Image: string, mimeType: string, prompt: string)
     { inlineData: { mimeType, data: base64Image } },
   ]);
   const text = result.response.text().trim();
-  console.log("[gemini] response:", text);
+  log.info("gemini.response", { responseLength: text.length });
   return text;
 }
 
@@ -92,7 +91,7 @@ export async function roastProfile(
       try {
         text = await callGemini(base64Image, mimeType, prompt);
       } catch (geminiErr) {
-        console.warn("[roast] Gemini failed, falling back to Groq:", geminiErr);
+        log.warn("gemini.fallback", { error: String(geminiErr) });
         text = await callGroq(base64Image, mimeType, prompt);
       }
     } else {
@@ -116,8 +115,7 @@ export async function roastProfile(
 
     const validated = GeminiResponseSchema.safeParse(parsed);
     if (validated.success) return validated.data;
-    console.error(`[roast] ${provider} response category:`, asObj.category);
-    console.error(`[roast] ${provider} raw response:`, text);
+    log.error("roast.validation_failed", { provider, category: asObj.category, attempt, responseLength: text.length });
     if (attempt === 1) {
       throw new Error(`${provider} response failed validation: ${validated.error.message}`);
     }

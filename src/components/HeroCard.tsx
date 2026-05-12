@@ -5,7 +5,7 @@ const LEVEL_META: Record<RoastLevel, { label: string; emoji: string }> = {
   mild: { label: "MILD", emoji: "😊" },
   medium: { label: "MEDIUM", emoji: "😏" },
   heavy: { label: "HEAVY", emoji: "🔥" },
-  dhoni: { label: "DHONI MODE", emoji: "🧊" },
+  samay: { label: "SAMAY MODE", emoji: "🎤" },
 };
 
 type Props = Pick<RoastData, "profileName" | "roastScore" | "category" | "level">;

@@ -9,7 +9,7 @@ const LEVEL_LABELS: Record<string, string> = {
   mild: "Mild 😊",
   medium: "Medium 😏",
   heavy: "Heavy 🔥",
-  dhoni: "Dhoni Mode 🧊",
+  samay: "Samay Mode 🎤",
 };
 
 const RANK_COLORS = ["text-yellow-500", "text-stone-400", "text-amber-700"];

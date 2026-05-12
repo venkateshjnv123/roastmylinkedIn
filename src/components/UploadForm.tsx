@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import imageCompression from "browser-image-compression";
 import LoadingState from "./LoadingState";
 
-type RoastLevel = "mild" | "medium" | "heavy" | "dhoni";
+type RoastLevel = "mild" | "medium" | "heavy" | "samay";
 type UploadMode = "screenshot" | "pdf";
 type ErrorType = "not_linkedin" | "rate_limit" | "generic" | null;
 
@@ -13,7 +13,7 @@ const LEVELS: { id: RoastLevel; emoji: string; label: string }[] = [
   { id: "mild", emoji: "😊", label: "Mild" },
   { id: "medium", emoji: "😏", label: "Medium" },
   { id: "heavy", emoji: "🔥", label: "Heavy" },
-  { id: "dhoni", emoji: "🧊", label: "Dhoni Mode" },
+  { id: "samay", emoji: "🎤", label: "Samay Mode" },
 ];
 
 const MAX_FILE_SIZE_MB = 5;

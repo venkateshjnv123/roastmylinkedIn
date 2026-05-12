@@ -7,13 +7,13 @@ import type { RoastLevel } from "@/lib/schemas";
 const NEXT_LEVEL: Partial<Record<RoastLevel, RoastLevel>> = {
   mild: "medium",
   medium: "heavy",
-  heavy: "dhoni",
+  heavy: "samay",
 };
 
 const BUTTON_LABEL: Partial<Record<RoastLevel, string>> = {
   medium: "😏 Try Medium Mode",
   heavy: "🔥 Try Heavy Mode",
-  dhoni: "🥛 Try Dhoni Mode",
+  samay: "🎤 Try Samay Mode",
 };
 
 export default function TryHarsherMode({ level }: { level: RoastLevel }) {

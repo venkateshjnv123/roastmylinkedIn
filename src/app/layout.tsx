@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     url: baseUrl,
     type: "website",
     locale: "en_US",
-    images: [{ url: "/api/og", width: 1200, height: 630, alt: "Roast My LinkedIn" }],
+    images: [{ url: "/api/og?sample=1", width: 1200, height: 630, alt: "Roast My LinkedIn — see what a roast looks like" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     description:
       "Upload your LinkedIn profile screenshot and get brutally roasted by AI. Share the carnage.",
     creator: "@venkyverse",
-    images: ["/api/og"],
+    images: ["/api/og?sample=1"],
   },
   robots: {
     index: true,
